@@ -70,7 +70,7 @@ CK_BBOOL GetLibrary()
 #ifdef OS_HPUX
 	snprintf( EnvLib, sizeof(EnvLib)-1, "%s/libCryptoki2.sl", pPath );
 #else
-	snprintf( EnvLib, sizeof(EnvLib)-1, "%s/libCryptoki2.so", pPath );
+	snprintf( EnvLib, sizeof(EnvLib)-1, "%s/libCryptoki2_64.so", pPath );
 #endif
 #endif
 
@@ -87,7 +87,7 @@ CK_BBOOL LoadP11Functions()
 	CK_BBOOL						myRC = CK_FALSE;
 	CK_C_GetFunctionList			C_GetFunctionList = NULL;
 	CK_RV							rv = CKR_TOKEN_NOT_PRESENT;
-	
+
 	if( GetLibrary() == CK_FALSE )
 		return CK_FALSE;
 
@@ -292,8 +292,12 @@ CK_RV FindFirstSlot( CK_SLOT_ID *pckSlot )
 	CK_RV					retCode = CKR_OK;
 
 	retCode = P11Functions->C_GetSlotList(CK_TRUE, NULL, &ulCount);
-	if(retCode != CKR_OK)
+	if(retCode != CKR_OK) {
+		printf("Failed to find slot %d\n", (int)retCode);
 		goto findSlot;
+	}
+
+	printf("Found %d slots\n", (int)ulCount);
 
 	if( ulCount == 0 )
 		goto findSlot;
@@ -325,7 +329,8 @@ int main(int argc, char* argv[])
 	CK_RV				rv = CKR_TOKEN_NOT_PRESENT;
 	CK_SESSION_HANDLE	hSession = 0;
 	CK_SLOT_ID			ckSlot = 0;
-	CK_BYTE				bPassword[64] = "userpin"; //set this to whatever the real password is
+	CK_BYTE				bPassword[64] = "OUR_OWN_PARTITION_PASS";
+
 
 
 	memset( PlainText, 65, sizeof(PlainText) );
@@ -343,15 +348,19 @@ int main(int argc, char* argv[])
 	}
 
 	rv = FindFirstSlot( &ckSlot );
-	if( (rv != CKR_OK) || (ckSlot == 0) )
+	if( (rv != CKR_OK) || (ckSlot == 0) ) {
+		printf("Fail FindFirstSlot rv %d slot %d!\n", (int)rv, (int)ckSlot);
 		goto doneMain;
+	}
 
-	rv = P11Functions->C_OpenSession( ckSlot, CKF_RW_SESSION|CKF_SERIAL_SESSION, NULL, NULL, &hSession );
+	rv = P11Functions->C_OpenSession(ckSlot, CKF_RW_SESSION|CKF_SERIAL_SESSION, NULL, NULL, &hSession );
 	if( rv != CKR_OK )
+		printf("Fail C_OpenSession!\n");
 		goto doneMain;
 
 	rv = P11Functions->C_Login( hSession, CKU_USER, bPassword, strlen((char*)bPassword) );
 	if( rv != CKR_OK )
+		printf("Fail C_Login!\n");
 		goto doneMain;
 
 	rv = Generate3DESKey( hSession );
@@ -373,7 +382,7 @@ doneMain:
 	}
 	else
 	{
-		printf("all is NOT OKAY! rv = 0x%x\n", rv);
+		printf("all is NOT OKAY! rv = 0x%x\n", (unsigned int)rv);
 		rc = -1;
 	}
 
