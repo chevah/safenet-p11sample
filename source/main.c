@@ -348,28 +348,39 @@ int main(int argc, char* argv[])
 	}
 
 	rv = FindFirstSlot( &ckSlot );
-	if( (rv != CKR_OK) || (ckSlot == 0) ) {
+	if( (rv != CKR_OK) || (ckSlot == 0) )
+	{
 		printf("Fail FindFirstSlot rv %d slot %d!\n", (int)rv, (int)ckSlot);
 		goto doneMain;
 	}
 
 	rv = P11Functions->C_OpenSession(ckSlot, CKF_RW_SESSION|CKF_SERIAL_SESSION, NULL, NULL, &hSession );
 	if( rv != CKR_OK )
+	{
 		printf("Fail C_OpenSession!\n");
 		goto doneMain;
+	}
 
 	rv = P11Functions->C_Login( hSession, CKU_USER, bPassword, strlen((char*)bPassword) );
 	if( rv != CKR_OK )
+	{
 		printf("Fail C_Login!\n");
 		goto doneMain;
+	}
 
 	rv = Generate3DESKey( hSession );
 	if( rv != CKR_OK )
+	{
+		printf("Fail Generate3DESKey!\n");
 		goto doneMain;
+	}
 
 	rv = EncryptData( hSession );
 	if( rv != CKR_OK )
+	{
+		printf("Fail EncryptData!\n");
 		goto doneMain;
+	}
 
 	rv = DecryptData( hSession );
 
